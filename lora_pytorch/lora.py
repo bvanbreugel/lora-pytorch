@@ -37,11 +37,13 @@ class LoRA(nn.Module, Generic[ModuleType]):
         module: ModuleType,
         lora_module: Optional[BaseLoRAModule],
         enabled: bool = True,
+        is_root: bool = False,
     ):
         super().__init__()
         self.module = module.eval()
         self.lora_module = lora_module
         self.enabled = enabled and lora_module is not None
+        self.is_root = is_root
 
         if not enabled:
             self.disable_lora()
@@ -58,7 +60,9 @@ class LoRA(nn.Module, Generic[ModuleType]):
         return y
 
     def parameters(self, recurse: bool = True) -> Any:
-        if self.lora_module is None:
+        if self.is_root:
+            return super().parameters(recurse=recurse)
+        elif self.lora_module is None:
             return []
         return self.lora_module.parameters(recurse=recurse)
 
@@ -175,7 +179,7 @@ class LoRA(nn.Module, Generic[ModuleType]):
             )
 
         if is_root:
-            return LoRA(module, None, enabled=enabled)
+            return LoRA(module, None, enabled=enabled, is_root=True)
         else:
             return module
 
